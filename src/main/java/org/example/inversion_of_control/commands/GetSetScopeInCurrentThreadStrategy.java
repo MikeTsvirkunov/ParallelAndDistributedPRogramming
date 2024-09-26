@@ -7,7 +7,7 @@ import org.example.inversion_of_control.scope.ScopeBaseDependencyResolve;
 public class GetSetScopeInCurrentThreadStrategy implements IStrategy {
 
     @Override
-    public Object execute(Object... args) throws Exception {
+    public Object execute(Object... args) {
         return new SetScopeInCurrentThreadStrategy();
     }
 }

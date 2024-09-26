@@ -8,7 +8,7 @@ import org.example.inversion_of_control.scope.ScopeBaseDependencyResolve;
 public class SetScopeInCurrentThreadStrategy implements IStrategy {
 
     @Override
-    public Object execute(Object... args) throws Exception {
+    public Object execute(Object... args) {
         ScopeBaseDependencyResolve.currentScope.set(IoC.caster.cast(args[0]));
         return null;
     }

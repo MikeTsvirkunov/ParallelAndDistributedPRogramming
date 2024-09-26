@@ -19,7 +19,6 @@ public class ScopeBaseDependencyResolve {
         if (scope == null){
             scope = (Scope)defaultScope.get();
         }
-        System.out.println("\tARGS.Length ScopeBaseDependencyResolve " + args.length);
         return scope.resolve(key, args);
     }
 }

@@ -10,7 +10,6 @@ import java.util.concurrent.ConcurrentHashMap;
 public class DefaultGetNewScopeStrategy implements IStrategy {
     @Override
     public Object execute(Object... args) throws Exception {
-        System.out.println("\tARGS.Length DefaultGetNewScopeStrategy " + args.length);
         ConcurrentHashMap<String, IStrategy> x = IoC.resolve("Scopes.Storage");
         return new Scope(IoC.caster.cast(args[0]), x);
     }

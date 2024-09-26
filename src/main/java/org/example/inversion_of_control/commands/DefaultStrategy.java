@@ -10,7 +10,7 @@ public class DefaultStrategy implements IStrategy {
         this.strategy = strategy;
     }
     @Override
-    public Object execute(Object[] args) throws Exception {
+    public Object execute(Object[] args) {
         return strategy.apply(args);
     }
 }

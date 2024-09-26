@@ -12,7 +12,6 @@ public class ScopeBaseDependencyResolveStrategy implements IStrategy {
     public Object execute(Object... args) throws Exception {
         String k = IoC.caster.cast(args[0]);
         Object[] v = IoC.caster.cast(args[1]);
-        Arrays.stream(v).forEach(System.out::println);
         return ScopeBaseDependencyResolve.resolve(k, v);
     }
 }

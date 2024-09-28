@@ -9,7 +9,7 @@ import java.util.Arrays;
 
 public class ScopeBaseDependencyResolveStrategy implements IStrategy {
     @Override
-    public Object execute(Object... args) throws Exception {
+    public Object execute(Object... args) {
         String k = IoC.caster.cast(args[0]);
         Object[] v = IoC.caster.cast(args[1]);
         return ScopeBaseDependencyResolve.resolve(k, v);

@@ -5,7 +5,7 @@ import org.example.inversion_of_control.datatype_caters.DefaultDataTypeCaster;
 
 public class DefaultResolveStrategy implements IStrategy {
     @Override
-    public Object execute(Object... args) throws Exception {
+    public Object execute(Object... args) {
         if ("IoC.Default.ResolveStrategy".equals(args[0])) {
             return new DefaultResolveStrategy();
         }

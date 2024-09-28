@@ -13,7 +13,7 @@ public class LeafScope implements IScope {
     }
 
     @Override
-    public Object resolve(String key, Object... args) throws Exception {
+    public Object resolve(String key, Object... args) {
         return this.strategy.execute(key, args);
     }
 }

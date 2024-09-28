@@ -14,7 +14,7 @@ public class IoC {
     public static ICaster caster = new DefaultDataTypeCaster();
 
 
-    public static <T> T resolve(String key, Object... args) throws Exception {
+    public static <T> T resolve(String key, Object... args) {
         Object[] x0 = IoC.caster.cast(args);
         Object x1 = strategy.execute(key, x0);
         return caster.cast(x1);

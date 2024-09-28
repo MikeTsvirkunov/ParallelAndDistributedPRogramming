@@ -14,7 +14,7 @@ import java.util.function.Function;
 
 public class InitIoCStrategy implements IStrategy {
     @Override
-    public Object execute(Object... args) throws Exception {
+    public Object execute(Object... args) {
         ConcurrentHashMap<String, IStrategy> cd = new ConcurrentHashMap<>();
         IStrategy defaultIoC = IoC.resolve("IoC.Default.ResolveStrategy", new Object[]{});
         IScope leafScope = new LeafScope(defaultIoC);

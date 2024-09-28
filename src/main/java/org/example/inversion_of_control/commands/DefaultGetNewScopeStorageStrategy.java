@@ -7,7 +7,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class DefaultGetNewScopeStorageStrategy implements IStrategy {
     @Override
-    public Object execute(Object[] args) throws Exception {
+    public Object execute(Object[] args) {
         return new ConcurrentHashMap<String, IStrategy>();
     }
 }

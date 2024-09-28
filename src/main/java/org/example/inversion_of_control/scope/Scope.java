@@ -17,7 +17,7 @@ public class Scope implements IScope {
     }
 
     @Override
-    public Object resolve(String key, Object... args) throws Exception {
+    public Object resolve(String key, Object... args) {
         if (memory.containsKey(key)) {
             IStrategy strategy = memory.get(key);
             return strategy.execute(args);

@@ -11,7 +11,7 @@ public class ScopeBaseDependencyResolve {
     public static Supplier<Object> defaultScope = () -> root;
     public static ThreadLocal<Scope> currentScope = new ThreadLocal<>();
 
-    public static Object resolve(String key, Object... args) throws Exception {
+    public static Object resolve(String key, Object... args) {
         if (Objects.equals(key, "Scopes.Root")){
             return root;
         }

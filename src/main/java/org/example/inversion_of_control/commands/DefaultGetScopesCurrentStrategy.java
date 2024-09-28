@@ -7,7 +7,7 @@ import org.example.inversion_of_control.scope.ScopeBaseDependencyResolve;
 
 public class DefaultGetScopesCurrentStrategy implements IStrategy {
     @Override
-    public Object execute(Object[] args) throws Exception {
+    public Object execute(Object[] args) {
         Scope value = ScopeBaseDependencyResolve.currentScope.get();
         value = (value != null) ? value : IoC.caster.cast(ScopeBaseDependencyResolve.defaultScope.get());
         return value;

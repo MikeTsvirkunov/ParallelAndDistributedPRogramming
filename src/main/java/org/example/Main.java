@@ -22,6 +22,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 
 //TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
@@ -114,12 +115,23 @@ public class Main {
         AbstractList<CodeDescriptionEntity> codeDescriptions = IoC.resolve("Variables.Create.List");
         sourcePaths.forEach(x -> codeDescriptions.add(IoC.resolve("Strategies.CodeParser.ParseCodeFileStrategy", x)));
         List<Thread> lot = IoC.resolve("Variables.Create.List");
+
+        ReentrantLock lock = new ReentrantLock();
+
         codeDescriptions.forEach(
             x0 -> {
                 Runnable f = () -> {
-                    initScope(sourcePaths, dependenciesTree);
-                    IoC.resolve("Strategies.CodeParser.AddImplementationsToDependencyTreeStrategy", x0);
-                    IoC.resolve("Strategies.CodeParser.AddExtendsToDependencyTreeStrategy", x0);
+                    lock.lock();
+                    try{
+                        initScope(sourcePaths, dependenciesTree);
+                        IoC.resolve("Strategies.CodeParser.AddImplementationsToDependencyTreeStrategy", x0);
+                        IoC.resolve("Strategies.CodeParser.AddExtendsToDependencyTreeStrategy", x0);
+                    } catch (RuntimeException e) {
+                        throw new RuntimeException(e);
+                    }
+                    finally {
+                        lock.unlock();
+                    }
                 };
                 Thread thread = IoC.resolve(
                     "Variables.Create.Thread", f

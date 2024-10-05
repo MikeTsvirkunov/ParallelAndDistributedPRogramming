@@ -22,15 +22,14 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.function.Function;
 
 //TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
 // click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
+
 public class Main {
 
     public static void initScope(AbstractSet<File> sourcePaths, AbstractMap<String, AbstractList<String>> dependenciesTree){
-//        List<File> sourcePaths = new ArrayList<File>(List.of());
-//        ConcurrentSkipListSet<File> sourcePaths = new ConcurrentSkipListSet<>();
-//        ConcurrentHashMap<String, AbstractList<String>> dependenciesTree = new ConcurrentHashMap<>();
 
         new InitIoCStrategy().execute();
         IScope scopeRoot = IoC.resolve("Scopes.Root");
@@ -95,6 +94,9 @@ public class Main {
         IoC.<IStrategy>resolve("IoC.Register", "Strategies.CodeParser.AddExtendsToDependencyTreeStrategy", new AddExtendsToDependencyTreeStrategy());
         IoC.<IStrategy>resolve("IoC.Register", "Strategies.CodeParser.AddImplementationsToDependencyTreeStrategy", new AddImplementationsToDependencyTreeStrategy());
         IoC.<IStrategy>resolve("IoC.Register", "Strategies.CodeParser.PrintDependencyTreeStrategy", new PrintDependencyTreeStrategy());
+        IoC.<IStrategy>resolve("IoC.Register", "Variables.Create.Thread", new DefaultStrategy(
+                x0 -> new Thread(IoC.caster.<Runnable>cast(x0[0]))
+        ));
     }
 
 
@@ -105,27 +107,22 @@ public class Main {
 
         initScope(sourcePaths, dependenciesTree);
 
-//        AbstractSet<File> sourcePaths = IoC.resolve("Variables.GetSourcesPaths");
-//        AbstractMap<String, AbstractList<String>> dependenciesTree = IoC.resolve("Variables.GetDependenceTree");
-
-
         String rootFilePath = IoC.resolve("Constants.Path");
         File rootFile = IoC.resolve("Variables.Create.File", rootFilePath);
         IoC.resolve("Strategies.CodeParser.PackageReaderStrategy", rootFile);
-
-
 
         AbstractList<CodeDescriptionEntity> codeDescriptions = IoC.resolve("Variables.Create.List");
         sourcePaths.forEach(x -> codeDescriptions.add(IoC.resolve("Strategies.CodeParser.ParseCodeFileStrategy", x)));
         List<Thread> lot = IoC.resolve("Variables.Create.List");
         codeDescriptions.forEach(
             x0 -> {
-                Thread thread = new Thread(
-                        () -> {
-                            initScope(sourcePaths, dependenciesTree);
-                            IoC.resolve("Strategies.CodeParser.AddImplementationsToDependencyTreeStrategy", x0);
-                            IoC.resolve("Strategies.CodeParser.AddExtendsToDependencyTreeStrategy", x0);
-                        }
+                Runnable f = () -> {
+                    initScope(sourcePaths, dependenciesTree);
+                    IoC.resolve("Strategies.CodeParser.AddImplementationsToDependencyTreeStrategy", x0);
+                    IoC.resolve("Strategies.CodeParser.AddExtendsToDependencyTreeStrategy", x0);
+                };
+                Thread thread = IoC.resolve(
+                    "Variables.Create.Thread", f
                 );
                 thread.start();
                 lot.add(thread);

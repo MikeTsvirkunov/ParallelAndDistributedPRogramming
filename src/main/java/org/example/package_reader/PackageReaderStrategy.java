@@ -19,7 +19,13 @@ public class PackageReaderStrategy implements IStrategy {
     @Override
     public Object execute(Object... args) {
         File file = IoC.caster.cast(args[0]);
-        List<File> lof = Arrays.asList(Objects.requireNonNull(file.listFiles(File::isFile)));
+        List<File> lof = Arrays.stream(Objects.requireNonNull(file.listFiles(File::isFile))).filter(x -> {
+            String extension = "";
+            int i = x.getName().lastIndexOf('.');
+            if (i > 0) {
+                extension = x.getName().substring(i+1);
+            }
+            return extension.equals("java");}).toList();
         IoC.resolve("Variables.AddToSourcePaths", lof);
         Arrays.stream(Objects.requireNonNull(file.listFiles(File::isDirectory))).forEach(x0 -> {
             IoC.resolve("Strategies.CodeParser.PackageReaderStrategy", x0);

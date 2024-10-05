@@ -15,7 +15,6 @@ public class GetPatternStrategy implements IStrategy {
     @Override
     public Object execute(Object... args) {
         Matcher m = this.pattern.matcher(args[0].toString());
-        String v = m.find() ? m.group() : "None";
-        return v;
+        return m.find() ? m.group() : "None";
     }
 }

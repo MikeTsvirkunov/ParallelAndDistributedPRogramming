@@ -12,9 +12,6 @@ public class AddExtendsToDependencyTreeStrategy implements IStrategy {
     public Object execute(Object... args) {
         CodeDescriptionEntity codeDescriptionEntity = IoC.caster.cast(args[0]);
         AbstractList<String> v = IoC.resolve("Variables.GetFromDependenceTree", codeDescriptionEntity.classExtends);
-        if (v == null) {
-            v = IoC.resolve("Variables.Create.List");
-        }
         v.add(codeDescriptionEntity.className);
         IoC.resolve("Variables.AddToDependenceTree", codeDescriptionEntity.classExtends, v);
         return null;

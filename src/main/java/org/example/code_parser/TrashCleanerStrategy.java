@@ -11,12 +11,12 @@ public class TrashCleanerStrategy implements IStrategy {
     @Override
     public Object execute(Object... args) {
         if (args[0] == null) {
-            return null;
+            return IoC.resolve("Constants.EmptyCodePart");
         }
         Matcher v = this.x.matcher(IoC.caster.cast(args[0]));
         if (v.find()) {
             return v.replaceAll("");
         }
-        return null;
+        return IoC.resolve("Constants.EmptyCodePart");
     }
 }

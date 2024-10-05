@@ -19,14 +19,18 @@ import org.example.package_reader.PackageReaderStrategy;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ConcurrentSkipListSet;
 
 //TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
 // click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
 public class Main {
 
-    public static void initScope(){
-        List<File> sourcePaths = new ArrayList<File>(List.of());
-        HashMap<String, List<String>> dependenciesTree = new HashMap<String, List<String>>();
+    public static void initScope(AbstractSet<File> sourcePaths, AbstractMap<String, AbstractList<String>> dependenciesTree){
+//        List<File> sourcePaths = new ArrayList<File>(List.of());
+//        ConcurrentSkipListSet<File> sourcePaths = new ConcurrentSkipListSet<>();
+//        ConcurrentHashMap<String, AbstractList<String>> dependenciesTree = new ConcurrentHashMap<>();
 
         new InitIoCStrategy().execute();
         IScope scopeRoot = IoC.resolve("Scopes.Root");
@@ -34,19 +38,36 @@ public class Main {
         IoC.<IStrategy>resolve("Scopes.Current.Set", scopeCurrent).execute(scopeCurrent);
         IoC.<IStrategy>resolve("IoC.Register", "Strategies.EchoStrategy", new DefaultStrategy(x -> x));
 
-        IoC.<IStrategy>resolve("IoC.Register", "Constants.Path", new DefaultStrategy(x -> "./src/main/"));
-        IoC.<IStrategy>resolve("IoC.Register", "Constants.Charset", new DefaultStrategy(x -> StandardCharsets.UTF_8));
-        IoC.<IStrategy>resolve("IoC.Register", "Variables.GetSourcesPaths", new DefaultStrategy(x -> sourcePaths));
-        IoC.<IStrategy>resolve("IoC.Register", "Variables.GetDependenceTree", new DefaultStrategy(x -> dependenciesTree));
-        IoC.<IStrategy>resolve("IoC.Register", "Variables.AddToDependenceTree", new DefaultStrategy(x -> {
-            dependenciesTree.put(IoC.caster.cast(x[0]), IoC.caster.cast(x[1]));
-            return null;
-        }));
-        IoC.<IStrategy>resolve("IoC.Register", "Variables.GetFromDependenceTree", new DefaultStrategy(x -> dependenciesTree.getOrDefault(IoC.caster.<String>cast(x[0]), null)));
-        IoC.resolve("IoC.Register", "Variables.AddToSourcePaths", new DefaultStrategy(x0 -> {
-            sourcePaths.addAll(IoC.caster.cast(x0[0]));
-            return null;
-        }));
+        IoC.<IStrategy>resolve("IoC.Register", "Constants.Path", new DefaultStrategy(x -> "/home/mike/Downloads/spring-framework-6.1.13/"));
+        IoC.<IStrategy>resolve("IoC.Register", "Constants.EmptyCodePart", new DefaultStrategy(x -> "None"));
+        IoC.<IStrategy>resolve("IoC.Register", "Constants.Charset", new DefaultStrategy(
+                x -> StandardCharsets.UTF_8
+        ));
+        IoC.<IStrategy>resolve("IoC.Register", "Variables.GetSourcesPaths", new DefaultStrategy(
+                x -> sourcePaths
+        ));
+        IoC.<IStrategy>resolve("IoC.Register", "Variables.GetDependenceTree", new DefaultStrategy(
+                x -> dependenciesTree
+        ));
+
+        IoC.<IStrategy>resolve("IoC.Register", "Variables.Create.File", new DefaultStrategy(
+                x -> new File(IoC.caster.<String>cast(x[0]))
+        ));
+        IoC.<IStrategy>resolve("IoC.Register", "Variables.AddToDependenceTree", new DefaultStrategy(
+                x -> {
+                    dependenciesTree.put(IoC.caster.cast(x[0]), IoC.caster.cast(x[1]));
+                    return null;
+                }
+        ));
+        IoC.<IStrategy>resolve("IoC.Register", "Variables.GetFromDependenceTree", new DefaultStrategy(
+                x -> dependenciesTree.getOrDefault(IoC.caster.<String>cast(x[0]), IoC.resolve("Variables.Create.List"))
+        ));
+        IoC.resolve("IoC.Register", "Variables.AddToSourcePaths", new DefaultStrategy(
+                x0 -> {
+                    sourcePaths.addAll(IoC.caster.cast(x0[0]));
+                    return null;
+                }
+        ));
 
 
         IoC.<IStrategy>resolve("IoC.Register", "Variables.Create.List", new DefaultStrategy(x -> new ArrayList<Object>(List.of())));
@@ -54,13 +75,21 @@ public class Main {
         IoC.<IStrategy>resolve("IoC.Register", "Strategies.CodeParser.PackageReaderStrategy", new PackageReaderStrategy());
         IoC.<IStrategy>resolve("IoC.Register", "Strategies.CodeParser.CodeReader", new CodeReader());
         IoC.<IStrategy>resolve("IoC.Register", "Strategies.CodeParser.TrashCleaner", new TrashCleanerStrategy());
-        IoC.<IStrategy>resolve("IoC.Register", "Strategies.CodeParser.GetClassNameStrategy", new GetPatternStrategy("\\s+\\b(class|interface)\\b\\s+\\w+"));
-        IoC.<IStrategy>resolve("IoC.Register", "Strategies.CodeParser.GetImplementationText", new GetPatternStrategy("\\s+implements\\s+\\w+(,\\s+\\w+)*"));
-        IoC.<IStrategy>resolve("IoC.Register", "Strategies.CodeParser.GetImplementationStrategy", new DefaultStrategy(x -> {
-            String imp = IoC.resolve("Strategies.CodeParser.GetImplementationText", x);
-            return Arrays.asList(imp.split(",\\s+"));
-        }));
-        IoC.<IStrategy>resolve("IoC.Register", "Strategies.CodeParser.GetExtendsStrategy", new GetPatternStrategy("\\s+extends\\s+\\w+"));
+        IoC.<IStrategy>resolve("IoC.Register", "Strategies.CodeParser.GetClassNameStrategy", new GetPatternStrategy(
+                "\\s+\\b(class|interface)\\b\\s+\\w+"
+        ));
+        IoC.<IStrategy>resolve("IoC.Register", "Strategies.CodeParser.GetImplementationText", new GetPatternStrategy(
+                "\\s+implements\\s+\\w+(,\\s+\\w+)*"
+        ));
+        IoC.<IStrategy>resolve("IoC.Register", "Strategies.CodeParser.GetImplementationStrategy", new DefaultStrategy(
+                x -> {
+                    String imp = IoC.resolve("Strategies.CodeParser.GetImplementationText", x);
+                    return Arrays.asList(imp.split(",\\s+"));
+                }
+        ));
+        IoC.<IStrategy>resolve("IoC.Register", "Strategies.CodeParser.GetExtendsStrategy", new GetPatternStrategy(
+                "\\s+extends\\s+\\w+"
+        ));
         IoC.<IStrategy>resolve("IoC.Register", "Strategies.CodeParser.ParseCodeFileStrategy", new ParseCodeFileStrategy());
 
         IoC.<IStrategy>resolve("IoC.Register", "Strategies.CodeParser.AddExtendsToDependencyTreeStrategy", new AddExtendsToDependencyTreeStrategy());
@@ -71,22 +100,44 @@ public class Main {
 
     public static void main(String[] args) {
 
-        initScope();
+        ConcurrentSkipListSet<File> sourcePaths = new ConcurrentSkipListSet<>();
+        ConcurrentHashMap<String, AbstractList<String>> dependenciesTree = new ConcurrentHashMap<>();
 
-        List<File> sourcePaths = IoC.resolve("Variables.GetSourcesPaths");
-        AbstractMap<String, List<String>> dependenciesTree = IoC.resolve("Variables.GetDependenceTree");
-        IoC.resolve("Strategies.CodeParser.PackageReaderStrategy", new File("./src/main/"));
+        initScope(sourcePaths, dependenciesTree);
 
-        List<CodeDescriptionEntity> codeDescriptions = new ArrayList<CodeDescriptionEntity>(List.of());
+//        AbstractSet<File> sourcePaths = IoC.resolve("Variables.GetSourcesPaths");
+//        AbstractMap<String, AbstractList<String>> dependenciesTree = IoC.resolve("Variables.GetDependenceTree");
+
+
+        String rootFilePath = IoC.resolve("Constants.Path");
+        File rootFile = IoC.resolve("Variables.Create.File", rootFilePath);
+        IoC.resolve("Strategies.CodeParser.PackageReaderStrategy", rootFile);
+
+
+
+        AbstractList<CodeDescriptionEntity> codeDescriptions = IoC.resolve("Variables.Create.List");
         sourcePaths.forEach(x -> codeDescriptions.add(IoC.resolve("Strategies.CodeParser.ParseCodeFileStrategy", x)));
-
+        List<Thread> lot = IoC.resolve("Variables.Create.List");
         codeDescriptions.forEach(
             x0 -> {
-                IoC.resolve("Strategies.CodeParser.AddImplementationsToDependencyTreeStrategy", x0);
-                IoC.resolve("Strategies.CodeParser.AddExtendsToDependencyTreeStrategy", x0);
+                Thread thread = new Thread(
+                        () -> {
+                            initScope(sourcePaths, dependenciesTree);
+                            IoC.resolve("Strategies.CodeParser.AddImplementationsToDependencyTreeStrategy", x0);
+                            IoC.resolve("Strategies.CodeParser.AddExtendsToDependencyTreeStrategy", x0);
+                        }
+                );
+                thread.start();
+                lot.add(thread);
             }
         );
-        dependenciesTree.remove(null);
-        dependenciesTree.keySet().forEach(x -> new PrintDependencyTreeStrategy().execute(x, null));
+        lot.forEach(x -> {
+            try{
+                x.join();
+            }
+            catch (InterruptedException _){}
+        });
+        dependenciesTree.remove(IoC.<String>resolve("Constants.EmptyCodePart"));
+        dependenciesTree.forEach((x, v) -> System.out.println(x + ": " + String.join(", ", v)));
     }
 }

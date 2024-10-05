@@ -17,8 +17,9 @@ public class CodeReader implements IStrategy {
             File file = IoC.caster.cast(args[0]);
             Path path = file.toPath();
             Charset charset = IoC.resolve("Constants.Charset");
-            String content = Files.readString(path, charset);
-            return content;
+            String s1 = "/+.*";
+            String s2 = "\\*.+";
+            return Files.readString(path, charset).replaceAll(s1, "").replaceAll(s2, "");
        } catch (IOException e) {
            throw new RuntimeException("CodeReader: " + e);
        }

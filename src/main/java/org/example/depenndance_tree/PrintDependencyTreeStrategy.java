@@ -15,11 +15,11 @@ public class PrintDependencyTreeStrategy implements IStrategy {
 
         AbstractList<String> v = IoC.resolve("Variables.GetFromDependenceTree", k);
         if (v != null){
-            v.forEach(x -> {
-                IoC.resolve("Strategies.CodeParser.PrintDependencyTreeStrategy", x, ((s != null) ? s : k) + " -> " + x);
-            });
+            v.forEach(x -> IoC.resolve("Strategies.CodeParser.PrintDependencyTreeStrategy", x, ((s != null) ? s : k) + " -> " + x));
         }
-        System.out.println(s);
+        if (s != null){
+            System.out.println(s);
+        }
         return null;
     }
 }

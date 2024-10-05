@@ -12,12 +12,8 @@ public class AddImplementationsToDependencyTreeStrategy implements IStrategy {
     @Override
     public Object execute(Object... args) {
         CodeDescriptionEntity codeDescriptionEntity = (CodeDescriptionEntity) args[0];
-
         codeDescriptionEntity.classImplements.forEach(x -> {
             AbstractList<String> v = IoC.resolve("Variables.GetFromDependenceTree", x);
-            if (v == null) {
-                v = IoC.resolve("Variables.Create.List");
-            }
             v.add(codeDescriptionEntity.className);
             IoC.resolve("Variables.AddToDependenceTree", x, v);
         });

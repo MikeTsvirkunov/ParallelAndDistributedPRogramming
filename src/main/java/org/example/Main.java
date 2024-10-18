@@ -19,9 +19,7 @@ import org.example.package_reader.PackageReaderStrategy;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.*;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 
@@ -69,8 +67,9 @@ public class Main {
                 }
         ));
 
-
         IoC.<IStrategy>resolve("IoC.Register", "Variables.Create.List", new DefaultStrategy(x -> new ArrayList<Object>(List.of())));
+        IoC.<IStrategy>resolve("IoC.Register", "Variables.Create.Locker", new DefaultStrategy(x -> new ReentrantLock()));
+        IoC.<IStrategy>resolve("IoC.Register", "Variables.Create.PoolOfThreads", new DefaultStrategy(x -> Executors.newFixedThreadPool(IoC.caster.cast(x[0]))));
 
         IoC.<IStrategy>resolve("IoC.Register", "Strategies.CodeParser.PackageReaderStrategy", new PackageReaderStrategy());
         IoC.<IStrategy>resolve("IoC.Register", "Strategies.CodeParser.CodeReader", new CodeReader());
@@ -104,7 +103,7 @@ public class Main {
     public static void main(String[] args) {
 
         ConcurrentSkipListSet<File> sourcePaths = new ConcurrentSkipListSet<>();
-        ConcurrentHashMap<String, AbstractList<String>> dependenciesTree = new ConcurrentHashMap<>();
+        HashMap<String, AbstractList<String>> dependenciesTree = new HashMap<>();
 
         initScope(sourcePaths, dependenciesTree);
 
@@ -114,38 +113,44 @@ public class Main {
 
         AbstractList<CodeDescriptionEntity> codeDescriptions = IoC.resolve("Variables.Create.List");
         sourcePaths.forEach(x -> codeDescriptions.add(IoC.resolve("Strategies.CodeParser.ParseCodeFileStrategy", x)));
-        List<Thread> lot = IoC.resolve("Variables.Create.List");
+        List<Callable<HashMap<String, AbstractList<String>>>> listOfTasks = IoC.resolve("Variables.Create.List");
 
-        ReentrantLock lock = new ReentrantLock();
+        ExecutorService executor = IoC.resolve("Variables.Create.PoolOfThreads", 16);
 
         codeDescriptions.forEach(
             x0 -> {
-                Runnable f = () -> {
-                    lock.lock();
+                Callable<HashMap<String, AbstractList<String>>> f = () -> {
+                    HashMap<String, AbstractList<String>> dependenciesTreeLocal = new HashMap<>();
                     try{
-                        initScope(sourcePaths, dependenciesTree);
+                        initScope(sourcePaths, dependenciesTreeLocal);
                         IoC.resolve("Strategies.CodeParser.AddImplementationsToDependencyTreeStrategy", x0);
                         IoC.resolve("Strategies.CodeParser.AddExtendsToDependencyTreeStrategy", x0);
+                        return dependenciesTreeLocal;
                     } catch (RuntimeException e) {
                         throw new RuntimeException(e);
                     }
-                    finally {
-                        lock.unlock();
-                    }
                 };
-                Thread thread = IoC.resolve(
-                    "Variables.Create.Thread", f
-                );
-                thread.start();
-                lot.add(thread);
+                listOfTasks.add(f);
             }
         );
-        lot.forEach(x -> {
-            try{
-                x.join();
-            }
-            catch (InterruptedException _){}
-        });
+        try{
+            List<Future<HashMap<String, AbstractList<String>>>> futures = executor.invokeAll(listOfTasks);
+            futures.forEach(x ->  {
+                try {
+                    var d = x.get(2, TimeUnit.SECONDS);
+                    d.forEach((k, v) -> {
+                        var x0 = dependenciesTree.getOrDefault(k, IoC.resolve("Variables.Create.List"));
+                        x0.addAll(v);
+                        dependenciesTree.put(k, x0);
+                    });
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            });
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        executor.shutdownNow();
         dependenciesTree.remove(IoC.<String>resolve("Constants.EmptyCodePart"));
         dependenciesTree.forEach((x, v) -> System.out.println(x + ": " + String.join(", ", v)));
     }

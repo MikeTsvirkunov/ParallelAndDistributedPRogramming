@@ -111,18 +111,17 @@ public class Main {
         File rootFile = IoC.resolve("Variables.Create.File", rootFilePath);
         IoC.resolve("Strategies.CodeParser.PackageReaderStrategy", rootFile);
 
-        AbstractList<CodeDescriptionEntity> codeDescriptions = IoC.resolve("Variables.Create.List");
-        sourcePaths.forEach(x -> codeDescriptions.add(IoC.resolve("Strategies.CodeParser.ParseCodeFileStrategy", x)));
         List<Callable<HashMap<String, AbstractList<String>>>> listOfTasks = IoC.resolve("Variables.Create.List");
 
         ExecutorService executor = IoC.resolve("Variables.Create.PoolOfThreads", 16);
 
-        codeDescriptions.forEach(
-            x0 -> {
+        sourcePaths.forEach(
+            x -> {
                 Callable<HashMap<String, AbstractList<String>>> f = () -> {
                     HashMap<String, AbstractList<String>> dependenciesTreeLocal = new HashMap<>();
                     try{
                         initScope(sourcePaths, dependenciesTreeLocal);
+                        CodeDescriptionEntity x0 = IoC.resolve("Strategies.CodeParser.ParseCodeFileStrategy", x);
                         IoC.resolve("Strategies.CodeParser.AddImplementationsToDependencyTreeStrategy", x0);
                         IoC.resolve("Strategies.CodeParser.AddExtendsToDependencyTreeStrategy", x0);
                         return dependenciesTreeLocal;

@@ -28,7 +28,7 @@ import java.util.function.Function;
 
 public class Main {
 
-    public static void initScope(AbstractSet<File> sourcePaths, AbstractMap<String, AbstractList<String>> dependenciesTree){
+    public static void initScope(){
 
         new InitIoCStrategy().execute();
         IScope scopeRoot = IoC.resolve("Scopes.Root");
@@ -41,33 +41,34 @@ public class Main {
         IoC.<IStrategy>resolve("IoC.Register", "Constants.Charset", new DefaultStrategy(
                 x -> StandardCharsets.UTF_8
         ));
-        IoC.<IStrategy>resolve("IoC.Register", "Variables.GetSourcesPaths", new DefaultStrategy(
-                x -> sourcePaths
-        ));
-        IoC.<IStrategy>resolve("IoC.Register", "Variables.GetDependenceTree", new DefaultStrategy(
-                x -> dependenciesTree
-        ));
 
         IoC.<IStrategy>resolve("IoC.Register", "Variables.Create.File", new DefaultStrategy(
                 x -> new File(IoC.caster.<String>cast(x[0]))
         ));
         IoC.<IStrategy>resolve("IoC.Register", "Variables.AddToDependenceTree", new DefaultStrategy(
                 x -> {
+                    HashMap<String, AbstractList<String>> dependenciesTree = IoC.resolve("Variables.GetDependenceTree");
                     dependenciesTree.put(IoC.caster.cast(x[0]), IoC.caster.cast(x[1]));
                     return null;
                 }
         ));
         IoC.<IStrategy>resolve("IoC.Register", "Variables.GetFromDependenceTree", new DefaultStrategy(
-                x -> dependenciesTree.getOrDefault(IoC.caster.<String>cast(x[0]), IoC.resolve("Variables.Create.List"))
+                x -> {
+                    HashMap<String, AbstractList<String>> dependenciesTree = IoC.resolve("Variables.GetDependenceTree");
+                    return dependenciesTree.getOrDefault(IoC.caster.<String>cast(x[0]), IoC.resolve("Variables.Create.List"));
+                }
         ));
         IoC.resolve("IoC.Register", "Variables.AddToSourcePaths", new DefaultStrategy(
                 x0 -> {
+                    AbstractSet<File> sourcePaths = IoC.resolve("Variables.GetSourcesPaths");
                     sourcePaths.addAll(IoC.caster.cast(x0[0]));
                     return null;
                 }
         ));
 
         IoC.<IStrategy>resolve("IoC.Register", "Variables.Create.List", new DefaultStrategy(x -> new ArrayList<Object>(List.of())));
+        IoC.<IStrategy>resolve("IoC.Register", "Variables.Create.HashMap", new DefaultStrategy(x -> new HashMap<>()));
+        IoC.<IStrategy>resolve("IoC.Register", "Variables.Create.ConcurrentSkipListSet", new DefaultStrategy(x -> new ConcurrentSkipListSet<>()));
         IoC.<IStrategy>resolve("IoC.Register", "Variables.Create.Locker", new DefaultStrategy(x -> new ReentrantLock()));
         IoC.<IStrategy>resolve("IoC.Register", "Variables.Create.PoolOfThreads", new DefaultStrategy(x -> Executors.newFixedThreadPool(IoC.caster.cast(x[0]))));
 
@@ -102,11 +103,18 @@ public class Main {
 
     public static void main(String[] args) {
 
-        ConcurrentSkipListSet<File> sourcePaths = new ConcurrentSkipListSet<>();
-        HashMap<String, AbstractList<String>> dependenciesTree = new HashMap<>();
 
-        initScope(sourcePaths, dependenciesTree);
 
+
+        initScope();
+        ConcurrentSkipListSet<File> sourcePaths = IoC.resolve("Variables.Create.ConcurrentSkipListSet");
+        HashMap<String, AbstractList<String>> dependenciesTree = IoC.resolve("Variables.Create.HashMap");
+        IoC.<IStrategy>resolve("IoC.Register", "Variables.GetSourcesPaths", new DefaultStrategy(
+                x -> sourcePaths
+        ));
+        IoC.<IStrategy>resolve("IoC.Register", "Variables.GetDependenceTree", new DefaultStrategy(
+                x -> dependenciesTree
+        ));
         String rootFilePath = IoC.resolve("Constants.Path");
         File rootFile = IoC.resolve("Variables.Create.File", rootFilePath);
         IoC.resolve("Strategies.CodeParser.PackageReaderStrategy", rootFile);
@@ -116,14 +124,21 @@ public class Main {
         ExecutorService executor = IoC.resolve("Variables.Create.PoolOfThreads", 16);
 
         sourcePaths.forEach(
-            x -> {
+            x0 -> {
                 Callable<HashMap<String, AbstractList<String>>> f = () -> {
-                    HashMap<String, AbstractList<String>> dependenciesTreeLocal = new HashMap<>();
+                    initScope();
+                    ConcurrentSkipListSet<File> sourcePathsLocal = IoC.resolve("Variables.Create.ConcurrentSkipListSet");
+                    HashMap<String, AbstractList<String>> dependenciesTreeLocal = IoC.resolve("Variables.Create.HashMap");
+                    IoC.<IStrategy>resolve("IoC.Register", "Variables.GetSourcesPaths", new DefaultStrategy(
+                            x -> sourcePaths
+                    ));
+                    IoC.<IStrategy>resolve("IoC.Register", "Variables.GetDependenceTree", new DefaultStrategy(
+                            x -> dependenciesTree
+                    ));
                     try{
-                        initScope(sourcePaths, dependenciesTreeLocal);
-                        CodeDescriptionEntity x0 = IoC.resolve("Strategies.CodeParser.ParseCodeFileStrategy", x);
-                        IoC.resolve("Strategies.CodeParser.AddImplementationsToDependencyTreeStrategy", x0);
-                        IoC.resolve("Strategies.CodeParser.AddExtendsToDependencyTreeStrategy", x0);
+                        CodeDescriptionEntity x1 = IoC.resolve("Strategies.CodeParser.ParseCodeFileStrategy", x0);
+                        IoC.resolve("Strategies.CodeParser.AddImplementationsToDependencyTreeStrategy", x1);
+                        IoC.resolve("Strategies.CodeParser.AddExtendsToDependencyTreeStrategy", x1);
                         return dependenciesTreeLocal;
                     } catch (RuntimeException e) {
                         throw new RuntimeException(e);

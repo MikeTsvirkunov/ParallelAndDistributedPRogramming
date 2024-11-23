@@ -26,7 +26,7 @@ public class PackageReaderStrategy implements IStrategy {
                 extension = x.getName().substring(i+1);
             }
             return extension.equals("java");}).toList();
-        IoC.resolve("Variables.AddToSourcePaths", lof);
+        IoC.resolve("Variables.SourcePaths.Add", lof);
         Arrays.stream(Objects.requireNonNull(file.listFiles(File::isDirectory))).forEach(x0 -> {
             IoC.resolve("Strategies.CodeParser.PackageReaderStrategy", x0);
         });

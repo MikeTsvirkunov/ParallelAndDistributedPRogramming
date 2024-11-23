@@ -22,158 +22,289 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 
 //TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
 // click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
 
 public class Main {
 
-    public static void initScope(){
 
-        new InitIoCStrategy().execute();
-        IScope scopeRoot = IoC.resolve("Scopes.Root");
-        IScope scopeCurrent = IoC.resolve("Scopes.New", scopeRoot);
-        IoC.<IStrategy>resolve("Scopes.Current.Set", scopeCurrent).execute(scopeCurrent);
-        IoC.<IStrategy>resolve("IoC.Register", "Strategies.EchoStrategy", new DefaultStrategy(x -> x));
-
+    public static void initConstants() {
         IoC.<IStrategy>resolve("IoC.Register", "Constants.Path", new DefaultStrategy(x -> "/home/mike/Downloads/spring-framework-6.1.13/"));
         IoC.<IStrategy>resolve("IoC.Register", "Constants.EmptyCodePart", new DefaultStrategy(x -> "None"));
         IoC.<IStrategy>resolve("IoC.Register", "Constants.Charset", new DefaultStrategy(
                 x -> StandardCharsets.UTF_8
         ));
+        IoC.resolve("IoC.Register", "Constants.SizeOfPipeline", new DefaultStrategy(x -> 5));
+    }
 
+
+    public static void initCreators(){
         IoC.<IStrategy>resolve("IoC.Register", "Variables.Create.File", new DefaultStrategy(
                 x -> new File(IoC.caster.<String>cast(x[0]))
         ));
-        IoC.<IStrategy>resolve("IoC.Register", "Variables.AddToDependenceTree", new DefaultStrategy(
-                x -> {
-                    HashMap<String, AbstractList<String>> dependenciesTree = IoC.resolve("Variables.GetDependenceTree");
-                    dependenciesTree.put(IoC.caster.cast(x[0]), IoC.caster.cast(x[1]));
-                    return null;
-                }
-        ));
-        IoC.<IStrategy>resolve("IoC.Register", "Variables.ExtendDependenceTree", new DefaultStrategy(
-                x -> {
-                    String k = IoC.caster.cast(x[0]);
-                    HashMap<String, AbstractList<String>> dependenciesTree = IoC.resolve("Variables.GetDependenceTree");
-                    AbstractList<String> v = dependenciesTree.getOrDefault(k, IoC.resolve("Variables.Create.List"));
-                    v.addAll(IoC.caster.cast(x[1]));
-                    dependenciesTree.put(k, v);
-                    return null;
-                }
-        ));
-        IoC.<IStrategy>resolve("IoC.Register", "Variables.GetFromDependenceTree", new DefaultStrategy(
-                x -> {
-                    HashMap<String, AbstractList<String>> dependenciesTree = IoC.resolve("Variables.GetDependenceTree");
-                    return dependenciesTree.getOrDefault(IoC.caster.<String>cast(x[0]), IoC.resolve("Variables.Create.List"));
-                }
-        ));
-        IoC.resolve("IoC.Register", "Variables.AddToSourcePaths", new DefaultStrategy(
-                x0 -> {
-                    AbstractSet<File> sourcePaths = IoC.resolve("Variables.GetSourcesPaths");
-                    sourcePaths.addAll(IoC.caster.cast(x0[0]));
-                    return null;
-                }
-        ));
-
         IoC.<IStrategy>resolve("IoC.Register", "Variables.Create.List", new DefaultStrategy(x -> new ArrayList<Object>(List.of())));
         IoC.<IStrategy>resolve("IoC.Register", "Variables.Create.HashMap", new DefaultStrategy(x -> new HashMap<>()));
-        IoC.<IStrategy>resolve("IoC.Register", "Variables.Create.BlockingQueue", new DefaultStrategy(x -> new LinkedBlockingDeque<>()));
-        IoC.<IStrategy>resolve("IoC.Register", "Variables.Create.ConcurrentSkipListSet", new DefaultStrategy(x -> new ConcurrentSkipListSet<>()));
-        IoC.<IStrategy>resolve("IoC.Register", "Variables.Create.Locker", new DefaultStrategy(x -> new ReentrantLock()));
-        IoC.<IStrategy>resolve("IoC.Register", "Variables.Create.PoolOfThreads", new DefaultStrategy(x -> Executors.newFixedThreadPool(IoC.caster.cast(x[0]))));
-
-        IoC.<IStrategy>resolve("IoC.Register", "Strategies.CodeParser.PackageReaderStrategy", new PackageReaderStrategy());
-        IoC.<IStrategy>resolve("IoC.Register", "Strategies.CodeParser.CodeReader", new CodeReader());
-        IoC.<IStrategy>resolve("IoC.Register", "Strategies.CodeParser.TrashCleaner", new TrashCleanerStrategy());
-        IoC.<IStrategy>resolve("IoC.Register", "Strategies.CodeParser.GetClassNameStrategy", new GetPatternStrategy(
-                "\\s+\\b(class|interface)\\b\\s+\\w+"
-        ));
-        IoC.<IStrategy>resolve("IoC.Register", "Strategies.CodeParser.GetImplementationText", new GetPatternStrategy(
-                "\\s+implements\\s+\\w+(,\\s+\\w+)*"
-        ));
-        IoC.<IStrategy>resolve("IoC.Register", "Strategies.CodeParser.GetImplementationStrategy", new DefaultStrategy(
-                x -> {
-                    String imp = IoC.resolve("Strategies.CodeParser.GetImplementationText", x);
-                    return Arrays.asList(imp.split(",\\s+"));
-                }
-        ));
-        IoC.<IStrategy>resolve("IoC.Register", "Strategies.CodeParser.GetExtendsStrategy", new GetPatternStrategy(
-                "\\s+extends\\s+\\w+"
-        ));
-        IoC.<IStrategy>resolve("IoC.Register", "Strategies.CodeParser.ParseCodeFileStrategy", new ParseCodeFileStrategy());
-
-        IoC.<IStrategy>resolve("IoC.Register", "Strategies.CodeParser.AddExtendsToDependencyTreeStrategy", new AddExtendsToDependencyTreeStrategy());
-        IoC.<IStrategy>resolve("IoC.Register", "Strategies.CodeParser.AddImplementationsToDependencyTreeStrategy", new AddImplementationsToDependencyTreeStrategy());
-        IoC.<IStrategy>resolve("IoC.Register", "Strategies.CodeParser.PrintDependencyTreeStrategy", new PrintDependencyTreeStrategy());
-        IoC.<IStrategy>resolve("IoC.Register", "Variables.Create.Thread", new DefaultStrategy(
-                x0 -> new Thread(IoC.caster.<Runnable>cast(x0[0]))
-        ));
-
-        ConcurrentSkipListSet<File> sourcePathsLocal = IoC.resolve("Variables.Create.ConcurrentSkipListSet");
-        HashMap<String, AbstractList<String>> dependenciesTreeLocal = IoC.resolve("Variables.Create.HashMap");
-        IoC.<IStrategy>resolve("IoC.Register", "Variables.GetSourcesPaths", new DefaultStrategy(
-                x -> sourcePathsLocal
-        ));
-        IoC.<IStrategy>resolve("IoC.Register", "Variables.GetDependenceTree", new DefaultStrategy(
-                x -> dependenciesTreeLocal
+        IoC.<IStrategy>resolve("IoC.Register", "Variables.Create.BlockingQueue.Default", new DefaultStrategy(
+            x -> {
+                var sizeOfQueue = IoC.<Integer>resolve("Constants.SizeOfPipeline");
+                return new LinkedBlockingQueue<>(sizeOfQueue);
+            }
         ));
 
     }
 
 
+    public static void initCodeParser(){
+        IoC.<IStrategy>resolve("IoC.Register", "Strategies.CodeParser.GetClassNameText", new GetPatternStrategy(
+                Pattern.compile("\\s+\\b(class|interface)\\b\\s+\\w+")
+        ));
+        IoC.<IStrategy>resolve("IoC.Register", "Strategies.CodeParser.GetClassNameStrategy", new DefaultStrategy(
+                x -> {
+                    String imp = IoC.resolve("Strategies.CodeParser.GetClassNameText", x[0].toString());
+                    return imp.replaceAll("\\s*class\\s+", "")
+                            .replaceAll("\\s*implements\\s+", "")
+                            .replaceAll("\\s*extends\\s+", "")
+                            .replaceAll("\\s+", "");
+                }
+        ));
+        IoC.<IStrategy>resolve("IoC.Register", "Strategies.CodeParser.GetImplementationText", new GetPatternStrategy(
+                Pattern.compile("\\s+implements\\s+\\w+(,\\s+\\w+)*")
+        ));
+        IoC.<IStrategy>resolve("IoC.Register", "Strategies.CodeParser.GetImplementationStrategy", new DefaultStrategy(
+                x -> {
+                    String imp = IoC.resolve("Strategies.CodeParser.GetImplementationText", x[0].toString());
+                    imp = imp.replaceAll("\\s*class\\s+", "")
+                            .replaceAll("\\s*implements\\s+", "")
+                            .replaceAll("\\s*extends\\s+", "");
+                    return Arrays.stream(imp.split(",\\s+")).map(a -> a.replaceAll("\\s+", "")).toList();
+                }
+        ));
+
+        IoC.<IStrategy>resolve("IoC.Register", "Strategies.CodeParser.GetExtendsText", new GetPatternStrategy(
+                Pattern.compile("\\s+extends\\s+\\w+")
+        ));
+        IoC.<IStrategy>resolve("IoC.Register", "Strategies.CodeParser.GetExtendsStrategy", new DefaultStrategy(
+            x -> {
+                String ext = IoC.resolve("Strategies.CodeParser.GetExtendsText", x[0].toString());
+                return ext.replaceAll("\\s*class\\s+", "")
+                        .replaceAll("\\s*implements\\s+", "")
+                        .replaceAll("\\s*extends\\s+", "")
+                        .replaceAll("\\s+", "");
+            }
+        ));
+        IoC.<IStrategy>resolve("IoC.Register", "Strategies.CodeParser.ParseCodeFileStrategy", new ParseCodeFileStrategy());
+    }
+
+
+    public static void initPackageParser(){
+        IoC.<IStrategy>resolve("IoC.Register", "Strategies.CodeParser.PackageReaderStrategy", new PackageReaderStrategy());
+        IoC.<IStrategy>resolve("IoC.Register", "Variables.SourcePaths.Add", new DefaultStrategy(
+                x -> {
+                    var sourcePaths = IoC.<BlockingQueue<Callable<File>>>resolve("Pipelines.CodeReader");
+                    var lof = IoC.caster.<Iterable<File>>cast(x[0]);
+                    lof.forEach(
+                        a -> {
+                            try {
+                                sourcePaths.put(
+                                        () -> a
+                                );
+                            } catch (InterruptedException e) {
+                                throw new RuntimeException(e);
+                            }
+                        }
+                    );
+                    return null;
+                }
+        ));
+    }
+
+
+    public static  void  initCodeReader(){
+        IoC.<IStrategy>resolve("IoC.Register", "Strategies.CodeParser.CodeReader", new CodeReader());
+    }
+
+
+    public static void initCodeCleaner(){
+        IoC.<IStrategy>resolve("IoC.Register", "Strategies.CodeParser.TrashCleaner", new TrashCleanerStrategy());
+    }
+
+
+    public static void initTreeExtender(){
+        IoC.<IStrategy>resolve("IoC.Register", "Variables.AddToDependenceTree", new DefaultStrategy(
+            x -> {
+                HashMap<String, AbstractList<String>> dependenciesTree = IoC.resolve("Variables.GetDependenceTree");
+                dependenciesTree.put(IoC.caster.cast(x[0]), IoC.caster.cast(x[1]));
+                return null;
+            }
+        ));
+    }
+
+
+    public static void initScope(){
+        new InitIoCStrategy().execute();
+        IScope scopeRoot = IoC.resolve("Scopes.Root");
+        IScope scopeCurrent = IoC.resolve("Scopes.New", scopeRoot);
+        IoC.<IStrategy>resolve("Scopes.Current.Set", scopeCurrent).execute(scopeCurrent);
+        IoC.<IStrategy>resolve("IoC.Register", "Strategies.EchoStrategy", new DefaultStrategy(x -> x));
+    }
+
+
     public static void main(String[] args) {
         initScope();
-        ConcurrentSkipListSet<File> sourcePaths = IoC.resolve("Variables.GetSourcesPaths");
-        BlockingQueue<Future<Map<String, AbstractList<String>>>> tasks = IoC.resolve("Variables.Create.BlockingQueue");
-        BlockingQueue<Map<String, AbstractList<String>>>  maps = IoC.resolve("Variables.Create.BlockingQueue");
+        initConstants();
+        initCreators();
+        initPackageParser();
 
-        IoC.<IStrategy>resolve("IoC.Register", "Variables.Queues.Tasks", new DefaultStrategy(
-                x -> tasks
-        ));
-        IoC.<IStrategy>resolve("IoC.Register", "Variables.Queues.Maps", new DefaultStrategy(
-                x -> maps
-        ));
-        
+        // фон нейман полиморфные проги
+        BlockingQueue<Callable<File>> pipelineOfCodeReader = IoC.resolve("Variables.Create.BlockingQueue.Default");
+        BlockingQueue<Callable<String>> pipelineOfCodeCleaner = IoC.resolve("Variables.Create.BlockingQueue.Default");
+        BlockingQueue<Callable<String>> pipelineOfCodeParser = IoC.resolve("Variables.Create.BlockingQueue.Default");
+        BlockingQueue<Callable<CodeDescriptionEntity>> pipelineOfTreeExtender = IoC.resolve("Variables.Create.BlockingQueue.Default");
+
+        HashMap<String, Collection<String>> codeTree = new HashMap<>();
+
+        IoC.resolve("IoC.Register", "Pipelines.CodeReader", new DefaultStrategy(x -> pipelineOfCodeReader));
         String rootFilePath = IoC.resolve("Constants.Path");
         File rootFile = IoC.resolve("Variables.Create.File", rootFilePath);
-        IoC.resolve("Strategies.CodeParser.PackageReaderStrategy", rootFile);
-        List<Callable<HashMap<String, AbstractList<String>>>> listOfTasks = IoC.resolve("Variables.Create.List");
-        ExecutorService executor = IoC.resolve("Variables.Create.PoolOfThreads", 16);
 
 
-        sourcePaths.forEach(
-            x0 -> {
-                Callable<HashMap<String, AbstractList<String>>> f = () -> {
-                    initScope();
-                    try{
-                        CodeDescriptionEntity x1 = IoC.resolve("Strategies.CodeParser.ParseCodeFileStrategy", x0);
-                        IoC.resolve("Strategies.CodeParser.AddImplementationsToDependencyTreeStrategy", x1);
-                        IoC.resolve("Strategies.CodeParser.AddExtendsToDependencyTreeStrategy", x1);
-                        return IoC.resolve("Variables.GetDependenceTree");
-                    } catch (RuntimeException e) {
-                        throw new RuntimeException(e);
-                    }
-                };
-                listOfTasks.add(f);
-            }
-        );
-        HashMap<String, AbstractList<String>> dependenciesTree = IoC.resolve("Variables.GetDependenceTree");
-        try{
-            List<Future<HashMap<String, AbstractList<String>>>> futures = executor.invokeAll(listOfTasks);
-            futures.forEach(x ->  {
+        Runnable pipelineCodeReaderWorker = () -> {
+            initScope();
+            initConstants();
+            initCreators();
+            initCodeReader();
+            while (true) {
                 try {
-                    var d = x.get(2, TimeUnit.SECONDS);
-                    d.forEach((k, v) -> IoC.resolve("Variables.ExtendDependenceTree", k, v));
+                    var fileToRead = pipelineOfCodeReader.take();
+                    File f = fileToRead.call();
+                    String code = IoC.resolve("Strategies.CodeParser.CodeReader", f);
+                    pipelineOfCodeCleaner.put(
+                            () -> code
+                    );
+                } catch (InterruptedException e) {
+                    try {
+                        pipelineOfCodeParser.put(
+                                () -> {
+                                    throw new InterruptedException();
+                                }
+                        );
+                    } catch (InterruptedException ex) {
+                        throw new RuntimeException(ex);
+                    }
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
-            });
+            }
+        };
+
+
+        Runnable pipelineCodeCleanerWorker = () -> {
+            initScope();
+            initConstants();
+            initCreators();
+            initCodeCleaner();
+            while (true) {
+                try {
+                    String cleanCode = IoC.resolve(
+                    "Strategies.CodeParser.TrashCleaner",
+                        pipelineOfCodeCleaner.take().call()
+                    );
+                    pipelineOfCodeParser.put(
+                            () -> cleanCode
+                    );
+                } catch (InterruptedException e) {
+                    try {
+                        pipelineOfCodeParser.put(
+                            () -> {
+                                throw new InterruptedException();
+                            }
+                        );
+                    } catch (InterruptedException ex) {
+                        throw new RuntimeException(ex);
+                    }
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        };
+
+
+        Runnable pipelineCodeParserWorker = () -> {
+            initScope();
+            initConstants();
+            initCreators();
+            initCodeParser();
+            while (true) {
+                try {
+                    CodeDescriptionEntity cde = IoC.resolve(
+                            "Strategies.CodeParser.ParseCodeFileStrategy",
+                            pipelineOfCodeParser.take().call()
+                    );
+                    pipelineOfTreeExtender.put(
+                            () -> cde
+                    );
+                } catch (InterruptedException e) {
+                    try {
+                        pipelineOfTreeExtender.put(
+                                () -> {
+                                    throw new InterruptedException();
+                                }
+                        );
+                    } catch (InterruptedException ex) {
+                        throw new RuntimeException(ex);
+                    }
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        };
+
+
+        Runnable pipelineOfTreeExtenderWorker = () -> {
+            initScope();
+            initConstants();
+            initCreators();
+            initTreeExtender();
+            while (true) {
+                try {
+                    var cdeToTree = pipelineOfTreeExtender.take().call();
+                    var listOfParents = codeTree.getOrDefault(cdeToTree.className, IoC.resolve("Variables.Create.List"));
+                    listOfParents.addAll(cdeToTree.classImplements.stream().filter(a -> !Objects.equals(a, "None")).toList());
+                    if (!Objects.equals(cdeToTree.classExtends, "None")){
+                        listOfParents.add(cdeToTree.classExtends);
+                    }
+                    codeTree.put(cdeToTree.className, listOfParents);
+                } catch (InterruptedException e) {
+                    codeTree.forEach(
+                            (k, v) -> System.out.println(k + ": " + v)
+                    );
+                    throw new RuntimeException(e);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        };
+
+        var firstWorkerThread = new Thread(pipelineCodeReaderWorker);
+        var secondWorkerThread = new Thread(pipelineCodeCleanerWorker);
+        var thirdWorkerThread = new Thread(pipelineCodeParserWorker);
+        var fourthWorkerThread = new Thread(pipelineOfTreeExtenderWorker);
+        firstWorkerThread.start();
+        secondWorkerThread.start();
+        thirdWorkerThread.start();
+        fourthWorkerThread.start();
+        IoC.resolve("Strategies.CodeParser.PackageReaderStrategy", rootFile);
+        try {
+            pipelineOfCodeReader.put(
+                    () -> {
+                        throw new InterruptedException();
+                    }
+            );
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
-        executor.shutdownNow();
-        dependenciesTree.remove(IoC.<String>resolve("Constants.EmptyCodePart"));
-        dependenciesTree.forEach((x, v) -> System.out.println(x + ": " + String.join(", ", v)));
+        System.out.println("eow");
     }
 }

@@ -9,13 +9,10 @@ public class ParseCodeFileStrategy implements IStrategy {
     @Override
     public Object execute(Object... args) {
         CodeDescriptionEntity cde = new CodeDescriptionEntity();
-        String code = IoC.resolve("Strategies.CodeParser.CodeReader", args[0]);
-        cde.codeText = code;
-        cde.sourceFile = IoC.caster.cast(args[0]);
-        cde.className = IoC.resolve("Strategies.CodeParser.TrashCleaner", IoC.<String>resolve("Strategies.CodeParser.GetClassNameStrategy", code));
-        cde.classImplements = IoC.<List<String>>resolve("Strategies.CodeParser.GetImplementationStrategy", code).stream().map(x -> IoC.<String>resolve("Strategies.CodeParser.TrashCleaner", x)).toList();
-        String i = IoC.resolve("Strategies.CodeParser.GetExtendsStrategy", code);
-        cde.classExtends = IoC.resolve("Strategies.CodeParser.TrashCleaner", i);
+        cde.codeText = IoC.caster.cast(args[0]);
+        cde.className =  IoC.<String>resolve("Strategies.CodeParser.GetClassNameStrategy", cde.codeText);
+        cde.classImplements = IoC.<List<String>>resolve("Strategies.CodeParser.GetImplementationStrategy", cde.codeText);
+        cde.classExtends = IoC.resolve("Strategies.CodeParser.GetExtendsStrategy", cde.codeText);
         return cde;
     }
 }

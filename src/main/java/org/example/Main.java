@@ -191,7 +191,9 @@ public class Main {
                                 }
                         );
                     } catch (InterruptedException ex) {
-                        throw new RuntimeException(ex);
+                        break;
+//                        Thread.currentThread().interrupt();
+//                        throw new RuntimeException(ex);
                     }
                 } catch (Exception e) {
                     throw new RuntimeException(e);
@@ -222,7 +224,9 @@ public class Main {
                             }
                         );
                     } catch (InterruptedException ex) {
-                        throw new RuntimeException(ex);
+                        break;
+//                        Thread.currentThread().interrupt();
+//                        throw new RuntimeException(ex);
                     }
                 } catch (Exception e) {
                     throw new RuntimeException(e);
@@ -253,7 +257,9 @@ public class Main {
                                 }
                         );
                     } catch (InterruptedException ex) {
-                        throw new RuntimeException(ex);
+                        break;
+//                        Thread.currentThread().interrupt();
+//                        throw new RuntimeException(ex);
                     }
                 } catch (Exception e) {
                     throw new RuntimeException(e);
@@ -270,21 +276,33 @@ public class Main {
             while (true) {
                 try {
                     var cdeToTree = pipelineOfTreeExtender.take().call();
-                    var listOfParents = codeTree.getOrDefault(cdeToTree.className, IoC.resolve("Variables.Create.List"));
-                    listOfParents.addAll(cdeToTree.classImplements.stream().filter(a -> !Objects.equals(a, "None")).toList());
+                    codeTree.put(cdeToTree.className, IoC.resolve("Variables.Create.List"));
                     if (!Objects.equals(cdeToTree.classExtends, "None")){
-                        listOfParents.add(cdeToTree.classExtends);
+                        var extendsClass = codeTree.getOrDefault(cdeToTree.classExtends, IoC.resolve("Variables.Create.List"));
+                        extendsClass.add(cdeToTree.className);
+                        codeTree.put(cdeToTree.classExtends, extendsClass);
                     }
-                    codeTree.put(cdeToTree.className, listOfParents);
-                } catch (InterruptedException e) {
-                    codeTree.forEach(
-                            (k, v) -> System.out.println(k + ": " + v)
+
+                    cdeToTree.classImplements.forEach(
+                        x -> {
+                            if (!Objects.equals(x, "None")){
+                                var extendsClass = codeTree.getOrDefault(x, IoC.resolve("Variables.Create.List"));
+                                extendsClass.add(cdeToTree.className);
+                                codeTree.put(cdeToTree.classExtends, extendsClass);
+                            }
+                        }
                     );
-                    throw new RuntimeException(e);
+                } catch (InterruptedException e) {
+                    break;
+//                    Thread.currentThread().interrupt();
+//                    throw new RuntimeException(e);
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
             }
+            codeTree.forEach(
+                    (k, v) -> System.out.println(k + ": " + v)
+            );
         };
 
         var firstWorkerThread = new Thread(pipelineCodeReaderWorker);
@@ -298,13 +316,12 @@ public class Main {
         IoC.resolve("Strategies.CodeParser.PackageReaderStrategy", rootFile);
         try {
             pipelineOfCodeReader.put(
-                    () -> {
-                        throw new InterruptedException();
-                    }
+                () -> {
+                    throw new InterruptedException();
+                }
             );
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
-        System.out.println("eow");
     }
 }

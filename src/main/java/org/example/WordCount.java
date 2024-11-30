@@ -165,6 +165,7 @@ public class WordCount {
         IoC.resolve("Strategies.CodeParser.PackageReaderStrategy", rootFile);
 
         Configuration conf = new Configuration();
+        conf.setBoolean("mapreduce.input.fileinputformat.input.dir.recursive", true);
         Job job = Job.getInstance(conf, "word count");
         job.setJarByClass(WordCount.class);
         job.setMapperClass(TokenizerMapper.class);
@@ -172,13 +173,14 @@ public class WordCount {
         job.setReducerClass(IntSumReducer.class);
         job.setOutputKeyClass(Text.class);
         job.setOutputValueClass(Text.class);
-        listOfFiles.forEach(a -> {
-            try {
-                FileInputFormat.addInputPath(job, new Path(a.getPath()));
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        });
+
+        FileInputFormat.addInputPath(job, new Path(rootFilePath));
+//        listOfFiles.forEach(a -> {
+//            try {
+//            } catch (IOException e) {
+//                throw new RuntimeException(e);
+//            }
+//        });
 
         FileOutputFormat.setOutputPath(job, new Path("/home/mike/Downloads/message__processed.txt"));
         System.exit(job.waitForCompletion(true) ? 0 : 1);

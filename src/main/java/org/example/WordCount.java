@@ -18,12 +18,14 @@ import org.example.package_reader.PackageReaderParams;
 import org.example.package_reader.PackageReaderStrategy;
 
 import java.io.File;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -32,6 +34,7 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.CombineFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
 public class WordCount {
@@ -165,16 +168,21 @@ public class WordCount {
         IoC.resolve("Strategies.CodeParser.PackageReaderStrategy", rootFile);
 
         Configuration conf = new Configuration();
+        var d = conf.get("mapreduce.input.fileinputformat.input.dir.recursive");
         conf.setBoolean("mapreduce.input.fileinputformat.input.dir.recursive", true);
-        Job job = Job.getInstance(conf, "word count");
+        d = conf.get("mapreduce.input.fileinputformat.input.dir.recursive");
+        Job job = Job.getInstance(conf);
         job.setJarByClass(WordCount.class);
         job.setMapperClass(TokenizerMapper.class);
         job.setCombinerClass(IntSumReducer.class);
         job.setReducerClass(IntSumReducer.class);
         job.setOutputKeyClass(Text.class);
         job.setOutputValueClass(Text.class);
-
         FileInputFormat.addInputPath(job, new Path(rootFilePath));
+        var paths = IoC.<Collection<Path>>resolve("Variables.Create.List");
+        listOfFiles.forEach(x -> paths.add(new Path(x.getPath())));
+        Path[] pathsParams = paths.toArray(new Path[0]);
+        FileInputFormat.setInputPaths(job, pathsParams);
 //        listOfFiles.forEach(a -> {
 //            try {
 //            } catch (IOException e) {
@@ -182,7 +190,7 @@ public class WordCount {
 //            }
 //        });
 
-        FileOutputFormat.setOutputPath(job, new Path("/home/mike/Downloads/message__processed.txt"));
+        FileOutputFormat.setOutputPath(job, new Path("/home/mike/Downloads/message__processed/"));
         System.exit(job.waitForCompletion(true) ? 0 : 1);
     }
 }

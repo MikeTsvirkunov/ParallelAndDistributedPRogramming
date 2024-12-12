@@ -7,6 +7,5 @@ public class CodeDescriptionEntity {
     public String className;
     public String classExtends;
     public List<String> classImplements;
-    public File sourceFile;
     public String codeText;
 }
